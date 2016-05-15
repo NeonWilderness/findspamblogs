@@ -19,11 +19,11 @@ Ab einer bestimmten Anzahl von Spam-Kommentaren (Standard: 15 Spam-Kommentare) g
 ![spamblogs](https://googledrive.com/host/0B87rILW4RVIJNlN3eUJxVWN5ZWM/spamblogs.jpg "Spamblogliste")
 
 Spalte | Bedeutung |
---- | --- |
+:--- | :--- |
 Blogalias | Alias des Twoday-Blogs, der als Spam-Blog kategorisiert wurde |
 zuletzt geändert vor | Vergangene Zeitspanne bis zur letzten Änderung durch den Blogautor |
 Spam-Statistik | Anzahl der verspammten vs. analysierten Blogbeiträge<br>Anzahl der Spam-Kommentare und %-Verhältnis zu analysierter Kommentaranzahl |
-Spam-Infos | Klickbare Zusatzinfos: Stories = Links zu den Spam-Beiträgen, Spammers = Liste der Spam-Autoren/Links |
+Spam-Infos | Klickbare Zusatzinfos:<br>Stories = Links zu den Spam-Beiträgen,<br>Spammers = Liste der Spam-Autoren/Links |
 
 ##Nutzung
 ###A. Einmalige Vorbereitung
@@ -38,11 +38,13 @@ Das Programm `findspamblogs.js` ist ein NodeJS-Script und benötigt NodeJS als L
 
 ####Projekt klonen
 
-Um das Programm `findspamblogs.js` lokal von Ihrem Rechner ausführen zu können, klonen Sie das gesamte GIT Repository in ein lokales Verzeichnis Ihrer Wahl.
+Um das Programm lokal von Ihrem Rechner ausführen zu können, klonen Sie das gesamte GIT Repository in ein lokales Verzeichnis Ihrer Wahl.
 
 > Falls Sie das git Versionsmanagement noch nicht installiert haben, laden Sie das passende Installationspaket für Ihr Betriebssystem von der [git Downloadseite](https://git-scm.com/downloads) herunter und folgen Sie den Installationsanweisungen.
 
 Starten Sie anschließend Git Shell / Git Bash, manövrieren Sie in Ihr Entwicklungsverzeichnis (z.B. D:\Dokumente\Github) und klonen Sie das Projekt mit: `git clone https://github.com/NeonWilderness/findspamblogs.git`
+
+Weitere Hilfe zum Klonen eines Projekts finden Sie [hier](https://help.github.com/articles/cloning-a-repository/).
 
 ####Benötigte Packages installieren
 
@@ -80,3 +82,8 @@ Parameter | Kurzform | Bedeutung | Defaultwert |
 
 4. Kurzform: 30 Blogrollseiten, 200 Tage ohne Veränderung, 20 Spam-Kommentare<br>
    `node findspamblogs -p 30 -a 200 -m 20`
+
+####Whitelist anpassen
+
+Ist ein Kommentar zu Unrecht als Spam-Kommentar kategorisiert worden, kann man den Link des Benutzers ganz oder teilweise in die Whitelist aufnehmen. Wurde z.B. zu einem Beitrag ein Spam-Link mit Autorenlink "http://www.ichbinkeinspammer.de (Torben (Gast))" gemeldet, so könnte man die Zeichenkette "ichbinkeinspammer.de" in die Datei `whitelist.txt` ergänzen, damit bei zukünftigen Scriptläufen Kommentare dieses Links nicht mehr als Spam eingestuft wird.
+
