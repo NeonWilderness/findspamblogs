@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Twoday Spamblog-Analyse</title>
+        <link rel="stylesheet" type="text/css" href="https://cdn.rawgit.com/ThisIsDallas/Simple-Grid/master/simplegrid.css">
+        <style>
+            body { background: #fff; color: #444; padding: 10px 20px; font-family: Tahoma, sans-serif; }
+            #wrapper { width: 960px; margin: 0 auto; }
+            h3 span { font-weight: normal; }
+            .hint { font-size: .8em; background-color: #f5f5f5; border-top: 2px solid #666; border-bottom: 2px solid #666; padding: 10px; }
+            .header>div, .footer { background: #008cba; color: #fff; }
+            .blogrow, .footer { margin-top: 15px;}
+            .header>div, .blogrow>div, .footer { padding: 10px; font-size: .9em; }
+            .alias { display: block; background: #27ae60; color: #fff; padding: 8px 0; text-align: center; }
+            .alias a { color: #fff; text-decoration: none; outline: none; border: none; }
+            .alias a:hover, .alias a:focus { color: #166336; }
+            .lastchange span { font-size: .7em; }
+            p[class^='dirtyPosts-'], p[class^='spamLinks-'] { margin-left: 10px; }
+            .dirtyPost, .spamLink { display: block; font-size: .8em; }
+            .button { display: inline-block; outline: none; border: none; text-decoration: none; background: #f04124; color: #fff; border-radius: 3px; padding: 4px 8px; font-size: 11px; }
+            .button:hover, .button:focus { color: #820100; }
+        </style>
+    </head>
+    <body>
+        <div id="wrapper">
+            <h3>Twoday Spamblog-Analyse <span>vom {{today}}</span></h3>
+            <p class="hint">
+                Die nachstehende Übersicht listet alle Twoday-Blogs der ersten {{maxAnalyzePages}} Blogrollseiten, die seit {{daysBlogQualifiesAsAbandoned}} Tagen nicht verändert wurden und aktuell mindestens über {{minimumSpamCommentsToQualify}} Spam-Kommentare verfügen.
+            </p>
+            <div class="grid header">
+                <div class="col-4-12">Blogalias</div>
+                <div class="col-2-12">zuletzt geändert vor</div>
+                <div class="col-3-12">Spam-Statistik</div>
+                <div class="col-3-12">Spam-Infos</div>
+            </div>
+            {{#spamBlogs}}
+                <div class="spamblog" id="spamBlog-{{&alias}}">
+                    <div class="grid blogrow">
+                        <div class="col-4-12">
+                            <span class="alias"><a target="_blank" href="http://{{&alias}}.twoday.net/">{{&alias}}</a></span>
+                        </div>
+                        <div class="col-2-12">
+                            <div class="lastchange">{{lastPostPublished}} Tagen<br><span>{{timePassed}}</span></div>
+                        </div>
+                        <div class="col-3-12">
+                            <span class="spamstats">{{spammedPosts}} von {{analyzedPosts}} Beiträgen<br>({{spamComments}} Spam-Kommentare, {{dirtiness}}%)</span>
+                        </div>
+                        <div class="col-3-12">
+                            <div class="spaminfos">
+                                <a href="#spamBlog-{{&alias}}" data-scroll class="button" onclick="toggle('dirtyPosts-{{&alias}}')">Stories&nbsp;&raquo;</a>
+                                <a href="#spamBlog-{{&alias}}" data-scroll class="button" style="margin-left:15px" onclick="toggle('spamLinks-{{&alias}}')">Spammers&nbsp;&raquo;</a>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="dirtyPosts-{{&alias}}" style="display:none">{{#dirtyPosts}}<span class="dirtyPost"><a target="_blank" href="{{&.}}">{{&.}}</a></span>{{/dirtyPosts}}</p>
+                    <p class="spamLinks-{{&alias}}" style="display:none">{{#spamLinks}}<span class="spamLink">{{.}}</span>{{/spamLinks}}</p>
+                </div>
+            {{/spamBlogs}}
+            <div class="footer">Ende der Liste: {{spamBlogs.length}} Spamblogs gefunden.</div>
+        </div>
+        <script src="https://cdn.rawgit.com/cferdinandi/smooth-scroll/master/dist/js/smooth-scroll.min.js"></script>
+        <script type="text/javascript">
+            function toggle(classname) {
+              var target = document.getElementsByClassName(classname)[0];
+              target.style.display = (target.style.display==="none" ? "block" : "none");
+            }
+            smoothScroll.init({speed: 800});
+        </script>
+    </body>
+</html>
