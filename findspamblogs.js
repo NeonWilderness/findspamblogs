@@ -9,16 +9,26 @@ var request = require('request');
 
 var twodayBlogroll = 'http://twoday.net/main?start='; // 0,15,30,45, ...
 var timeoutAfterEachPageRequest = 100; // pause 100 milliseconds
-var timeoutAfterEachStoryRequest = 50; // pause 50 milliseconds
+var timeoutAfterEachStoryRequest = 80; // pause 80 milliseconds
 
-var maxAnalyzePages = 20; // check last xx blogroll pages (node parameter --pages=xx or -p xx)
+var maxAnalyzePages = 10; // check last 10 blogroll pages (node parameter --pages=xx or -p xx)
 var daysBlogQualifiesAsAbandoned = 365; // at minimum 1 year no blog action (node parameter --abandoned=xx or -a xx)
-var minimumSpamCommentsToQualify = 10; // must have at least 10 spam comments to be listed (node parameter --minspam=xx or -m xx)
+var minimumSpamCommentsToQualify = 15; // must have at least 15 spam comments to be listed (node parameter --minspam=xx or -m xx)
 
+/**
+ * Extract blogalias from a given twoday url
+ * @param uri Twoday url
+ * @returns {*} Twoday alias
+ */
 var getAlias = function(uri) {
     return uri.match(/http:\/\/(.*).twoday.net/)[1];
 };
 
+/**
+ * Analyzes a full blogroll page (15 blogs), extracts all blogs that seem to be abandoned
+ * @param body HTML of requested blogroll page
+ * @returns {Array} abandoned blogs array [{ alias, lastPostPublished }, ...]
+ */
 var analyzeBlogrollPage = function(body) {
     var $ = cheerio.load(body);
     var storyLinks = $("td").find("a[href*='.twoday.net/stories/']");
@@ -41,36 +51,56 @@ var analyzeBlogrollPage = function(body) {
 
 };
 
-var analyzeHistoryItems = function($) {
+/**
+ * Extract story links from the history infobox in the Twoday sidebar and add them to frontpage story links array if not redundant
+ * @param $ cheerio body HTML
+ * @param posts intermediate array holding frontpage story links
+ * @returns {Array} story links array
+ */
+var analyzeHistoryItems = function($, posts) {
     var historyItems = $(".historyItem a[href*='.twoday.net/stories/']");
-    var link, postsWithComments = [];
+    var link, uri;
     historyItems.each( function(){
         link = $(this);
-        postsWithComments.push( link.attr('href').split('#')[0]+'#comments' );
+        uri = link.attr('href').split('#')[0]+'#comments';
+        if (posts.indexOf(uri)<0) posts.push( uri );
     });
-    return postsWithComments;
+    return posts;
 };
 
+/**
+ * Extract all links to stories with comments from the blog's frontpage
+ * @param $ cheerio body HTML
+ * @returns {Array} array of links to stories with comments
+ */
 var analyzeFrontPostsWithCommments = function($) {
     var storyLinks = $(".storyLinks a[href*='#comments']");
     var link, comments, postsWithComments = [];
     storyLinks.each( function(){
         link = $(this);
         comments = parseInt(link.text(), 10);
-        if (comments>0) postsWithComments.push( {uri: link.attr('href'), spammed: false} );
+        if (comments>0) postsWithComments.push( link.attr('href') );
     });
     return postsWithComments;
 };
 
+/**
+ * Analyze recent posts of a blog's mainpage (frontpage posts and history posts)
+ * @param body blog's frontpage HTML
+ * @returns {Array} array of identified links to stories with comments
+ */
 var analyzeRecentPosts = function(body) {
     var $ = cheerio.load(body);
-    var posts = analyzeFrontPostsWithCommments($);
-    analyzeHistoryItems($).map( function(link) {
-        if (posts.indexOf(link)<0) posts.push( {uri: link, spammed: false} );
+    return analyzeHistoryItems($, analyzeFrontPostsWithCommments($)).map( function(link) {
+        return {uri: link, spammed: false};
     });
-    return posts;
 };
 
+/**
+ * Checks if a given href contains at least one string on the whitelist
+ * @param href
+ * @returns {boolean}
+ */
 var isWhitelisted = function(href) {
     var isOnWhitelist = false, i = 0, len = whitelist.length;
     while (i<len && !isOnWhitelist) {
@@ -80,26 +110,45 @@ var isWhitelisted = function(href) {
     return isOnWhitelist;
 };
 
+/**
+ * Checks if a given user reference is a guest user id
+ * @param user
+ * @returns {boolean}
+ */
 var isGuestUser = function(user) {
     return (user.indexOf('(gast)')>=0 || user.indexOf('(guest)')>=0);
 };
 
+/**
+ * Validates all comment links of a given post and checks if they qualify for spam
+ * If recognized as spam, remember spam user (save to array)
+ * @param body
+ * @param uri
+ * @returns {{uri: *, totalComments: number, spamLinks: Array}}
+ */
 var analyzePostForSpam = function(body, uri) {
     var $ = cheerio.load(body);
     var commentLinks = $(".commentDate>a");
-    var link, href, user, totalComments = 0, spamLinks = [];
+    var link, href, user, totalComments = 0, spamComments = 0, spamUser, spamLinks = [];
     commentLinks.each( function(){
         totalComments++;
         link = $(this);
         href = link.attr('href');
         user = link.text();
         if (isGuestUser(user.toLowerCase()) && !isWhitelisted(href)) {
-            spamLinks.push( href+' ('+user+')' );
+            spamComments++;
+            spamUser = href+' ('+user+')';
+            if (spamLinks.indexOf(spamUser)<0) spamLinks.push( spamUser );
         }
     });
-    return { uri: uri, totalComments: totalComments, spamLinks: spamLinks };
+    return { uri: uri, totalComments: totalComments, spamComments: spamComments, spamLinks: spamLinks };
 };
 
+/**
+ * Requests a blogroll page and returns a promise
+ * @param page
+ * @returns {*|promise}
+ */
 var requestBlogrollPage = function (page) {
 
     var deferred = q.defer();
@@ -120,6 +169,12 @@ var requestBlogrollPage = function (page) {
     return deferred.promise;
 };
 
+/**
+ * Requests a blog's main page (homepage) and returns a promise
+ * @param alias Twoday blog alias
+ * @param index sequence number of blog to calculate the timeout delay
+ * @returns {*|promise}
+ */
 var requestBlogPage = function (alias, index) {
 
     var deferred = q.defer();
@@ -140,6 +195,12 @@ var requestBlogPage = function (alias, index) {
     return deferred.promise;
 };
 
+/**
+ * Requests a post uri and returns a promise
+ * @param uri
+ * @param index sequence number of post to calculate the timeout delay
+ * @returns {*|promise}
+ */
 var requestPost = function (uri, index) {
 
     var deferred = q.defer();
@@ -159,30 +220,44 @@ var requestPost = function (uri, index) {
     return deferred.promise;
 };
 
+/**
+ * Launches all promises for all requested blogroll pages
+ * @returns {Array} of promises to be handled with q.all()
+ */
 var fireAllPageRequests = function() {
 
-    for (var page=0, promises=[]; page<maxAnalyzePages; ++page) {
+    for (var page=0, promises=[]; page<maxAnalyzePages; page++) {
         promises.push(requestBlogrollPage(page));
     }
     return promises;
 
 };
 
+/**
+ * Launches all promises for all requested blog homepages
+ * @param suspectiveBlogs
+ * @returns {Array} of promises to be handled with q.all()
+ */
 var findAllRecentPostsWithComments = function(suspectiveBlogs) {
 
-    for (var blog=0, promises=[], blogs=Object.keys(suspectiveBlogs), total=blogs.length; blog<total; ++blog) {
+    for (var blog=0, promises=[], blogs=Object.keys(suspectiveBlogs), total=blogs.length; blog<total; blog++) {
         promises.push(requestBlogPage(blogs[blog], blog));
     }
     return promises;
 
 };
 
+/**
+ * Launches all promises for all requested posts of a given blog
+ * @param suspectiveBlogs
+ * @returns {Array}
+ */
 var inspectPostsForSpam = function(suspectiveBlogs) {
 
     var index = 0;
-    for (var blog=0, promises=[], blogs=Object.keys(suspectiveBlogs), total=blogs.length; blog<total; ++blog) {
+    for (var blog=0, promises=[], blogs=Object.keys(suspectiveBlogs), total=blogs.length; blog<total; blog++) {
         var alias = blogs[blog];
-        for (var post=0, posts=suspectiveBlogs[alias].analyzedPosts.length; post<posts; ++post) {
+        for (var post=0, posts=suspectiveBlogs[alias].analyzedPosts.length; post<posts; post++) {
             promises.push(requestPost(suspectiveBlogs[alias].analyzedPosts[post].uri, index++));
         }
     }
@@ -190,6 +265,10 @@ var inspectPostsForSpam = function(suspectiveBlogs) {
 
 };
 
+/**
+ * Render spam blog infos to an HTML output by utilizing MustacheJS
+ * @param suspects
+ */
 var renderSpammedBlogs = function(suspects) {
     var today = new Date();
     var mustacheViewModel = {
@@ -221,8 +300,8 @@ var renderSpammedBlogs = function(suspects) {
             spammedPosts: dirtyPosts.length,
             spamComments: suspect.spamComments,
             dirtiness: Math.round(suspect.spamComments/suspect.analyzedComments*100),
-            dirtyPosts: dirtyPosts,
-            spamLinks: suspect.spamLinks
+            dirtyPosts: dirtyPosts.sort(),
+            spamLinks: suspect.spamLinks.sort()
         });
     }
 
@@ -232,6 +311,11 @@ var renderSpammedBlogs = function(suspects) {
 
 };
 
+/**
+ * Start main processing
+ */
+
+// parse command line parameters
 var options = cmdargs([
     { name: 'help', alias: 'h', type: Boolean, defaultValue: false },
     { name: 'pages', alias: 'p', type: Number, defaultValue: 10 },
@@ -239,6 +323,7 @@ var options = cmdargs([
     { name: 'minspam', alias: 'm', type: Number, defaultValue: 15 }
 ]).parse();
 
+// log help message if so requested and stop script
 if (options.help) {
     console.log('\nAufruf von findspamblogs.js mit folgenden möglichen Parametern:');
     console.log('\tnode findspamblogs --pages=<blogrollpages> --abandoned=<days> --minspam=<number>');
@@ -248,16 +333,21 @@ if (options.help) {
     return;
 }
 
+// save resulting parameter values (either given by user or by default)
 maxAnalyzePages = options.pages;
 daysBlogQualifiesAsAbandoned = options.abandoned;
 minimumSpamCommentsToQualify = options.minspam;
 
+// load whitelist text file and split strings to array
 var whitelist = fs.readFileSync('./whitelist.txt', 'utf8').trim().split('\r\n');
 
+// clear result object
 var suspectiveBlogs = {};
+// fire all blogroll page requests and wait for promises to be resolved/rejected
 q.all(fireAllPageRequests())
     .then( function(results) {
         results.forEach( function (suspects) {
+            // for each identified suspect, create an object property
             suspects.forEach( function(suspect) {
                 if (!suspectiveBlogs.hasOwnProperty(suspect.alias)) {
                     suspectiveBlogs[suspect.alias] = {
@@ -270,6 +360,7 @@ q.all(fireAllPageRequests())
                 }
             });
         });
+        // and return the promises to find all recent posts with comments
         return q.all(findAllRecentPostsWithComments(suspectiveBlogs));
     })
     .then( function(blogs) {
@@ -282,12 +373,12 @@ q.all(fireAllPageRequests())
         return q.all(inspectPostsForSpam(suspectiveBlogs));
     })
     .then( function(blogPosts) {
-        blogPosts.forEach( function (post) { // { uri: uri, totalComments: totalComments, spamLinks: spamLinks }
+        blogPosts.forEach( function (post) { // { uri: uri, totalComments: totalComments, spamComments: spamComments, spamLinks: spamLinks }
             var alias = getAlias(post.uri);
             var suspectiveBlog = suspectiveBlogs[alias];
             if (suspectiveBlogs.hasOwnProperty(alias)) {
                 suspectiveBlog.analyzedComments += post.totalComments;
-                suspectiveBlog.spamComments += post.spamLinks.length;
+                suspectiveBlog.spamComments += post.spamComments;
                 if (post.spamLinks.length > 0) {
                     for (var idx=0, lenP=suspectiveBlog.analyzedPosts.length; idx<lenP; idx++) {
                         if (suspectiveBlog.analyzedPosts[idx].uri===post.uri) break;
