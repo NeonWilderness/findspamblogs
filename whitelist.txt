@@ -1,5 +1,6 @@
 .blogspot.
 .blog.de
+.blogger.de
 blogsport.de
 blog.tanja-morschhaeuser.de
 claudiakilian.de
