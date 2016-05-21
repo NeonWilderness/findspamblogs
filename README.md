@@ -8,13 +8,13 @@ Die Blogroll Twodays zeigt auf der Hauptseite chronologisch die Änderungen an a
 Durch manuellen Eingriff des Twoday-Supports kann ein als Spamziel erkannter Blog über die Deaktivierung des Kennzeichens "Weblog publik machen" dauerhaft aus der Blogroll entfernt werden. Mit Hilfe des unten beschriebenen NodeJS-Scripts `findspamblogs.js` können Spamblogs pro-aktiv ermittelt und frühzeitig aus der Blogroll genommen werden. Durch die Herausnahme erodiert auch der Linkwert für die Spammer, da unveröffentlichte Blogs/Beiträge/Kommentare nicht mehr für die Google-Analyse erreichbar sind und damit nicht mehr den Page-Rank des Spammers beeinflussen können.
 
 ##Auswahlkriterien des Scripts
-Das Script liest eine gewünschte Menge von Blogrollseiten (Standard: 10 Blogrollseiten; je Seite 15 Blogs), ermittelt die Blognamen und prüft für jeden dieser Blogs, vor wie vielen Tagen der letzte (neueste) Beitrag erstellt wurde. Liegt diese Zeitspanne über einer vorgegebenen Grenze (Standard: 365 Tage), so gilt der Blog als mögliches Spamziel und wird für die weitere Analyse selektiert.
+Das Script liest eine gewünschte Menge von Blogrollseiten (Standard: 20 Blogrollseiten; je Seite 15 Blogs), ermittelt die Blognamen und prüft für jeden dieser Blogs, vor wie vielen Tagen der letzte (neueste) Beitrag erstellt wurde. Liegt diese Zeitspanne über einer vorgegebenen Grenze (Standard: 365 Tage), so gilt der Blog als mögliches Spamziel und wird für die weitere Analyse selektiert.
 
 In der Folge liest das Script alle Beiträge der Blog-Hauptseite sowie - falls die Änderungshistorie zugreifbar ist - alle in der Historie gelisteten, geänderten Beiträge. Es analysiert alle Kommentare der gelesenen Beiträge auf eine mögliche Spam-Kategorisierung. Ein Kommentar gilt dann als Spam-Kommentar, wenn er von einem User mit der Kennung (Gast) oder (Guest) erstellt wurde und einen Link hinter der Gastkennung hinterlegt hat, der nicht über die Whitelist als akzeptabel eingestuft werden kann.
 
 Die **Whitelist** ist eine normale Textdatei (UTF-8 kodiert) im gleichen Verzeichnis (Dateiname `whitelist.txt`), die zeilenweise Zeichenketten enthält, die eine Linkadresse als "Nicht-Spam" qualifiziert. Wird für die Linkadresse eines Gast-Users keinerlei Übereinstimmung mit einer (Teil-)Zeichenkette der Whitelist gefunden, so gilt der Kommentar als Spam-Kommentar.
 
-Ab einer bestimmten Anzahl von Spam-Kommentaren (Standard: 15 Spam-Kommentare) gilt ein Blog als Spam-Blog. Das Script ermittelt alle Beiträge dieses Blogs, die Spam-Kommentare aufweisen und sammelt die Spammer-Links. Alle ermittelten Spam-Blogs werden zum Ende der Analyse in eine HTML-Liste ausgegeben.
+Ab einer bestimmten Anzahl von Spam-Kommentaren (Standard: 20 Spam-Kommentare) gilt ein Blog als Spam-Blog. Das Script ermittelt alle Beiträge dieses Blogs, die Spam-Kommentare aufweisen und sammelt die Spammer-Links. Alle ermittelten Spam-Blogs werden zum Ende der Analyse in eine HTML-Liste ausgegeben.
 
 ![spamblogs](https://googledrive.com/host/0B87rILW4RVIJNlN3eUJxVWN5ZWM/spamblogs.jpg "Spamblogliste")
 
@@ -61,9 +61,9 @@ Das Script verfügt über folgende einstellbare Ausführungsparameter:
 Parameter | Kurzform | Bedeutung | Defaultwert |
 --- | --- | --- | :---: |
 --help | -h | Gibt einen Hilfetext aus und beendet das Script | false |
---pages={n} | -p {n} | Anzahl der zu analysierenden Blogrollseiten | 10 |
+--pages={n} | -p {n} | Anzahl der zu analysierenden Blogrollseiten | 20 |
 --abandoned={n} | -a {n} | Tageszahl, ab der ein Blog als "verlassen" gilt | 365 |
---minspam={n} | -m {n} | Anzahl der Spamkommentare, ab der ein Blog als Spamblog gilt | 15 |
+--minspam={n} | -m {n} | Anzahl der Spamkommentare, ab der ein Blog als Spamblog gilt | 20 |
 
 ####Script aufrufen
 
@@ -71,17 +71,17 @@ Parameter | Kurzform | Bedeutung | Defaultwert |
 
 **Beispielaufrufe mit Parameteränderung:**
 
-1. Durchsuche die Blogs der ersten 20 Blogrollseiten<br>
-   `node findspamblogs --pages=20`
+1. Durchsuche die Blogs der ersten 30 Blogrollseiten<br>
+   `node findspamblogs --pages=30`
 
 2. Durchsuche die Blogs der ersten 15 Blogrollseiten und selektiere nur Blogs mit 730 Tagen ohne Änderung<br>
    `node findspamblogs --pages=15 --abandoned=730`
 
-3. Selektiere nur Blogs mit mindestens 30 Spam-Kommentaren<br>
-   `node findspamblogs --minspam=30`
+3. Selektiere nur Blogs mit mindestens 10 Spam-Kommentaren<br>
+   `node findspamblogs --minspam=10`
 
-4. Kurzform: 30 Blogrollseiten, 200 Tage ohne Veränderung, 20 Spam-Kommentare<br>
-   `node findspamblogs -p 30 -a 200 -m 20`
+4. Kurzform: 30 Blogrollseiten, 200 Tage ohne Veränderung, 15 Spam-Kommentare<br>
+   `node findspamblogs -p 30 -a 200 -m 15`
 
 ####Whitelist anpassen
 

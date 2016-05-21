@@ -11,9 +11,9 @@ var twodayBlogroll = 'http://twoday.net/main?start='; // 0,15,30,45, ...
 var timeoutAfterEachPageRequest = 100; // pause 100 milliseconds
 var timeoutAfterEachStoryRequest = 80; // pause 80 milliseconds
 
-var maxAnalyzePages = 10; // check last 10 blogroll pages (node parameter --pages=xx or -p xx)
+var maxAnalyzePages = 20; // check last 20 blogroll pages (node parameter --pages=xx or -p xx)
 var daysBlogQualifiesAsAbandoned = 365; // at minimum 1 year no blog action (node parameter --abandoned=xx or -a xx)
-var minimumSpamCommentsToQualify = 15; // must have at least 15 spam comments to be listed (node parameter --minspam=xx or -m xx)
+var minimumSpamCommentsToQualify = 20; // must have at least 20 spam comments to be listed (node parameter --minspam=xx or -m xx)
 
 /**
  * Extract blogalias from a given twoday url
@@ -250,7 +250,7 @@ var findAllRecentPostsWithComments = function(suspectiveBlogs) {
 /**
  * Launches all promises for all requested posts of a given blog
  * @param suspectiveBlogs
- * @returns {Array}
+ * @returns {Array} of promises to be handled with q.all()
  */
 var inspectPostsForSpam = function(suspectiveBlogs) {
 
@@ -318,9 +318,9 @@ var renderSpammedBlogs = function(suspects) {
 // parse command line parameters
 var options = cmdargs([
     { name: 'help', alias: 'h', type: Boolean, defaultValue: false },
-    { name: 'pages', alias: 'p', type: Number, defaultValue: 10 },
-    { name: 'abandoned', alias: 'a', type: Number, defaultValue: 365 },
-    { name: 'minspam', alias: 'm', type: Number, defaultValue: 15 }
+    { name: 'pages', alias: 'p', type: Number, defaultValue: maxAnalyzePages },
+    { name: 'abandoned', alias: 'a', type: Number, defaultValue: daysBlogQualifiesAsAbandoned },
+    { name: 'minspam', alias: 'm', type: Number, defaultValue: minimumSpamCommentsToQualify }
 ]).parse();
 
 // log help message if so requested and stop script
@@ -329,7 +329,7 @@ if (options.help) {
     console.log('\tnode findspamblogs --pages=<blogrollpages> --abandoned=<days> --minspam=<number>');
     console.log('oder:');
     console.log('\tnode findspamblogs -p <blogrollpages> -a <days> -m <number>');
-    console.log('Defaultwerte: pages=10, abandoned=365, minspam=15');
+    console.log('Defaultwerte: pages=%d, abandoned=%d, minspam=%d', maxAnalyzePages, daysBlogQualifiesAsAbandoned, minimumSpamCommentsToQualify);
     return;
 }
 
